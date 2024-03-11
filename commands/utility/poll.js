@@ -42,17 +42,22 @@ module.exports = {
             .setStyle(TextInputStyle.Short)
             .setMaxLength(1000);
 
-            // An action row only holds one text input,
-            // so you need one action row per text input.
+        // An action row only holds one text input,
+        // so you need one action row per text input.
         const firstActionRow = new ActionRowBuilder().addComponents(pollTitle);
         const secondActionRow = new ActionRowBuilder().addComponents(firstChoice);
         const thirdActionRow = new ActionRowBuilder().addComponents(secondChoice);
         const fourthActionRow = new ActionRowBuilder().addComponents(thirdChoice);
 
-            // Add inputs to the modal
+        // Add inputs to the modal
         modal.addComponents(firstActionRow, secondActionRow, thirdActionRow, fourthActionRow);
 
-            // Show the modal to the user
+        // Show the modal to the user
         await interaction.showModal(modal);
+
+        const modalSubmission = await interaction.awaitModalSubmit({ time: 60000 })
+            .catch(console.err);
+        
+        await modalSubmission.reply("Modal Submitted!")
 	},
 };
