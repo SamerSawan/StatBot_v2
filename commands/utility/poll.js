@@ -1,5 +1,5 @@
-const { EmbedBuilder } = require('@discordjs/builders');
-const { ActionRowBuilder, SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { EmbedBuilder, ButtonBuilder} = require('@discordjs/builders');
+const { ActionRowBuilder, ComponentType, ButtonStyle, SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
 function calculateNumSquares(votes, total){
     return Math.floor(votes / total * 10)
@@ -7,6 +7,10 @@ function calculateNumSquares(votes, total){
 
 function calculatePercentage(votes, total){
     return `${(votes / total) * 100}%`
+}
+
+function createPollEmbed(votes){
+    return
 }
 
 module.exports = {
@@ -76,6 +80,27 @@ module.exports = {
             total: 0
         }
         
+        const voters = new Set()
+
+        const firstChoiceButton = new ButtonBuilder()
+        .setCustomId('firstChoiceButton')
+        .setLabel(firstChoice)
+        .setStyle(ButtonStyle.Secondary)
+
+        const secondChoiceButton = new ButtonBuilder()
+        .setCustomId('secondChoiceButton')
+        .setLabel(secondChoice)
+        .setStyle(ButtonStyle.Secondary)
+
+        const thirdChoiceButton = new ButtonBuilder()
+        .setCustomId('thirdChoiceButton')
+        .setLabel(thirdChoice)
+        .setStyle(ButtonStyle.Secondary)
+
+        const row = new ActionRowBuilder()
+        .addComponents(firstChoiceButton, secondChoiceButton, thirdChoiceButton)
+
+
         const pollEmbed = new EmbedBuilder()
         .setColor(0x0099FF)
         .setTitle(pollTitle)
@@ -90,7 +115,38 @@ module.exports = {
         );
             
 
-        await modalSubmission.reply({ embeds: [pollEmbed] });
+        const response = await modalSubmission.reply({ embeds: [pollEmbed], components: [row], fetchReply: true });
+
+        const collector = response.createMessageComponentCollector({ componentType: ComponentType.Button, time: 15_000 });
+
+        collector.on('collect', i => {
+            console.log('Hello from the collector');
+            if (voters.has(i.user.id)) {
+                i.reply({content: `You've already voted on this poll!`, ephemeral: true});
+            }
+            else {
+                voters.add(i.user.id);
+                switch(i.customId){
+                    case 'firstChoiceButton':
+                        votes.firstChoice = votes.firstChoice += 1;
+                        votes.total = votes.total += 1;
+                        console.log(votes);
+                        i.update({embeds: [pollEmbed], components: [row], fetchReply: true})
+                        break;
+                    case 'secondChoiceButton':
+                        votes.secondChoice = votes.secondChoice += 1;
+                        votes.total = votes.total += 1;
+                        console.log(votes);
+                        i.update({embeds: [pollEmbed], components: [row], fetchReply: true})
+                        break;
+                    case 'thirdChoiceButton':
+                        votes.thirdChoice = votes.thirdChoice += 1;
+                        votes.total = votes.total += 1;
+                        console.log(votes);
+                        i.update({embeds: [pollEmbed], components: [row], fetchReply: true})
+                }
+            }
+        });
         
 	},
 };
