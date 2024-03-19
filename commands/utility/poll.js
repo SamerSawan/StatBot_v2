@@ -9,15 +9,30 @@ function calculatePercentage(votes, total){
     return `${(votes / total) * 100}%`
 }
 
-function createPollEmbed(votes){
-    return
-}
-
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('poll')
 		.setDescription('Simple polling'),
 	async execute(interaction) {
+
+        function createPollEmbed(){
+            console.log(votes)
+        
+            const pollEmbed = new EmbedBuilder()
+                .setColor(0x0099FF)
+                .setTitle(pollTitle)
+                .setDescription('Choose one of the following options')
+                .addFields(
+                    { name: '\u200B', value: `${firstChoice} - ${calculatePercentage(votes.firstChoice, votes.total)}
+                    ${':blue_square:'.repeat(calculateNumSquares(votes.firstChoice, votes.total))}${':black_large_square:'.repeat((10 - calculateNumSquares(votes.firstChoice, votes.total)))}
+                    ${secondChoice} - ${calculatePercentage(votes.secondChoice, votes.total)}
+                    ${':blue_square:'.repeat(calculateNumSquares(votes.secondChoice, votes.total))}${':black_large_square:'.repeat((10 - calculateNumSquares(votes.secondChoice, votes.total)))}
+                    ${thirdChoice} - ${calculatePercentage(votes.thirdChoice, votes.total)}
+                    ${':blue_square:'.repeat(calculateNumSquares(votes.thirdChoice, votes.total))}${':black_large_square:'.repeat((10 - calculateNumSquares(votes.thirdChoice, votes.total)))}` },
+                );
+            return pollEmbed;
+        }
+
 		const modal = new ModalBuilder()
 			.setCustomId('Poll')
 			.setTitle('New Poll');
@@ -101,23 +116,11 @@ module.exports = {
         .addComponents(firstChoiceButton, secondChoiceButton, thirdChoiceButton)
 
 
-        const pollEmbed = new EmbedBuilder()
-        .setColor(0x0099FF)
-        .setTitle(pollTitle)
-        .setDescription('Choose one of the following options')
-        .addFields(
-            { name: '\u200B', value: `${firstChoice} - ${calculatePercentage(votes.firstChoice, votes.total)}
-            ${':blue_square:'.repeat(calculateNumSquares(votes.firstChoice, votes.total))}${':black_large_square:'.repeat((10 - calculateNumSquares(votes.firstChoice, votes.total)))}
-            ${secondChoice} - ${calculatePercentage(votes.secondChoice, votes.total)}
-            ${':blue_square:'.repeat(calculateNumSquares(votes.secondChoice, votes.total))}${':black_large_square:'.repeat((10 - calculateNumSquares(votes.secondChoice, votes.total)))}
-            ${thirdChoice} - ${calculatePercentage(votes.thirdChoice, votes.total)}
-            ${':blue_square:'.repeat(calculateNumSquares(votes.thirdChoice, votes.total))}${':black_large_square:'.repeat((10 - calculateNumSquares(votes.thirdChoice, votes.total)))}` },
-        );
-            
+        
 
-        const response = await modalSubmission.reply({ embeds: [pollEmbed], components: [row], fetchReply: true });
+        const response = await modalSubmission.reply({ embeds: [createPollEmbed(votes)], components: [row], fetchReply: true });
 
-        const collector = response.createMessageComponentCollector({ componentType: ComponentType.Button, time: 15_000 });
+        const collector = response.createMessageComponentCollector({ componentType: ComponentType.Button, time: 60_000 });
 
         collector.on('collect', i => {
             console.log('Hello from the collector');
@@ -131,22 +134,26 @@ module.exports = {
                         votes.firstChoice = votes.firstChoice += 1;
                         votes.total = votes.total += 1;
                         console.log(votes);
-                        i.update({embeds: [pollEmbed], components: [row], fetchReply: true})
+                        i.update({embeds: [createPollEmbed(votes)], components: [row], fetchReply: true})
                         break;
                     case 'secondChoiceButton':
                         votes.secondChoice = votes.secondChoice += 1;
                         votes.total = votes.total += 1;
                         console.log(votes);
-                        i.update({embeds: [pollEmbed], components: [row], fetchReply: true})
+                        i.update({embeds: [createPollEmbed(votes)], components: [row], fetchReply: true})
                         break;
                     case 'thirdChoiceButton':
                         votes.thirdChoice = votes.thirdChoice += 1;
                         votes.total = votes.total += 1;
                         console.log(votes);
-                        i.update({embeds: [pollEmbed], components: [row], fetchReply: true})
+                        i.update({embeds: [createPollEmbed(votes)], components: [row], fetchReply: true})
                 }
             }
         });
+
+        collector.on('end', i => {
+            
+        })
         
 	},
 };
