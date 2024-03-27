@@ -120,10 +120,9 @@ module.exports = {
 
         const response = await modalSubmission.reply({ embeds: [createPollEmbed(votes)], components: [row], fetchReply: true });
 
-        const collector = response.createMessageComponentCollector({ componentType: ComponentType.Button, time: 60_000 });
+        const collector = response.createMessageComponentCollector({ componentType: ComponentType.Button, time: 600_000 });
 
         collector.on('collect', i => {
-            console.log('Hello from the collector');
             if (voters.has(i.user.id)) {
                 i.reply({content: `You've already voted on this poll!`, ephemeral: true});
             }
@@ -149,11 +148,10 @@ module.exports = {
                         i.update({embeds: [createPollEmbed(votes)], components: [row], fetchReply: true})
                 }
             }
-        });
 
+        });
         collector.on('end', i => {
-            
+            i.first().editReply({content: 'The poll has ended!', embeds: [], components: []})
         })
-        
 	},
 };
