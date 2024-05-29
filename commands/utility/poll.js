@@ -1,10 +1,13 @@
 const { EmbedBuilder, ButtonBuilder} = require('@discordjs/builders');
 const { ActionRowBuilder, ComponentType, ButtonStyle, SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
+// Calculates the number of emoji squares to display
 function calculateNumSquares(votes, total){
     return Math.floor(votes / total * 10)
 }
 
+
+//Calculates the percentage
 function calculatePercentage(votes, total){
     return `${(votes / total) * 100}%`
 }
@@ -124,7 +127,7 @@ module.exports = {
 
         collector.on('collect', i => {
             if (voters.has(i.user.id)) {
-                i.reply({content: `You've already voted on this poll!`, ephemeral: true});
+                i.reply({content: `You've already voted on this poll!`, ephemeral: true });
             }
             else {
                 voters.add(i.user.id);
@@ -151,7 +154,7 @@ module.exports = {
 
         });
         collector.on('end', i => {
-            i.first().editReply({content: 'The poll has ended!', embeds: [], components: []})
+            response.edit({content: 'The poll has ended!', embeds: [], components: [], })
         })
 	},
 };
