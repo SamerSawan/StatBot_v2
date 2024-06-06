@@ -353,6 +353,7 @@ Finally, we add the Action Rows to our modal, show the modal to our user and the
 
 
 Embeds are "fancier" messages that you can often see sent by bots. Some popular bots that use embeds are bots like Mudae Gacha, which is a card collecting bot for anime characters. 
+
 ![image](https://github.com/SamerSawan/StatBot_v2/assets/67536733/ebef4be8-db26-4471-9231-3530df7377d6)
 
 
