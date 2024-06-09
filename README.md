@@ -1,3 +1,4 @@
+//A note: I'm currently working on shortening the command loading section to really get to the meaty section of making a discord bot. The current readme doesnt represent the final version of the tutorial
 
 ### Why make discord bots ?
 
