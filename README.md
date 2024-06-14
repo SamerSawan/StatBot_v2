@@ -1,4 +1,4 @@
-//A note: I'm currently working on shortening the command loading section to really get to the meaty section of making a discord bot. The current readme doesnt represent the final version of the tutorial
+##### Note: To see a simpler version of this project that includes just one command and no command loading / event loading, please check the branch titled "Just Polling"
 
 ### Why make discord bots ?
 
