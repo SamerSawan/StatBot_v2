@@ -1,11 +1,18 @@
-const fs = require('node:fs');
-const path = require('node:path');
 const { EmbedBuilder, ButtonBuilder} = require('@discordjs/builders');
 const { ActionRowBuilder, ComponentType, ButtonStyle, SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
-const { Client, Collection, GatewayIntentBits, REST, Routes, Events } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, Events } = require('discord.js');
 const { clientId, guildId, token } = require('./config.json');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+const pingCommand = {
+	data: new SlashCommandBuilder()
+		  .setName('ping')
+		  .setDescription('Replies with Pong!'),
+	  async execute(interaction) {
+		  await interaction.reply('Pong!');
+	  },
+};
 
 const pollCommand = {
 	data: new SlashCommandBuilder()
@@ -176,7 +183,7 @@ const rest = new REST().setToken(token);
 		// The put method is used to fully refresh all commands in the guild with the current set
 		const data = await rest.put(
 			Routes.applicationGuildCommands(clientId, guildId),
-			{ body: [pollCommand.data] },
+			{ body: [pingCommand.data, pollCommand.data] },
 		);
 
 		console.log(`Successfully reloaded ${data.length} application (/) commands.`);
@@ -191,6 +198,14 @@ const rest = new REST().setToken(token);
 client.on(Events.InteractionCreate, async interaction => {
 	if (!interaction.isChatInputCommand()) return;
 
+	if (interaction.commandName === 'ping') {
+		try {
+			await pingCommand.execute(interaction);
+		} catch (error) {
+			console.error(error);
+			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true })
+		}
+	}
 	if (interaction.commandName === 'poll') {
         try {
             await pollCommand.execute(interaction);
