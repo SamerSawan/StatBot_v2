@@ -1,39 +1,204 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, GatewayIntentBits } = require('discord.js');
-const { token } = require('./config.json');
+const { EmbedBuilder, ButtonBuilder} = require('@discordjs/builders');
+const { ActionRowBuilder, ComponentType, ButtonStyle, SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { Client, Collection, GatewayIntentBits, REST, Routes, Events } = require('discord.js');
+const { clientId, guildId, token } = require('./config.json');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-client.commands = new Collection();
-const foldersPath = path.join(__dirname, 'commands');
-const commandFolders = fs.readdirSync(foldersPath);
-
-for (const folder of commandFolders) {
-	const commandsPath = path.join(foldersPath, folder);
-	const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-	for (const file of commandFiles) {
-		const filePath = path.join(commandsPath, file);
-		const command = require(filePath);
-		if ('data' in command && 'execute' in command) {
-			client.commands.set(command.data.name, command);
-		} else {
-			console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+const pollCommand = {
+	data: new SlashCommandBuilder()
+	.setName('poll')
+	.setDescription('Simple polling'),
+	async execute(interaction) {
+		// Calculates the number of emoji squares to display
+		function calculateNumSquares(votes, total){
+			return Math.floor(votes / total * 10)
 		}
-	}
-}
 
-const eventsPath = path.join(__dirname, 'events');
-const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
-for (const file of eventFiles) {
-	const filePath = path.join(eventsPath, file);
-	const event = require(filePath);
-	if (event.once) {
-		client.once(event.name, (...args) => event.execute(...args));
-	} else {
-		client.on(event.name, (...args) => event.execute(...args));
+		//Calculates the percentage
+		function calculatePercentage(votes, total){
+			return `${(votes / total) * 100}%`
+		}
+
+        function createPollEmbed(){
+            console.log(votes)
+        
+            const pollEmbed = new EmbedBuilder()
+                .setColor(0x0099FF)
+                .setTitle(pollTitle)
+                .setDescription('Choose one of the following options')
+                .addFields(
+                    { name: '\u200B', value: `${firstChoice} - ${calculatePercentage(votes.firstChoice, votes.total)}
+                    ${':blue_square:'.repeat(calculateNumSquares(votes.firstChoice, votes.total))}${':black_large_square:'.repeat((10 - calculateNumSquares(votes.firstChoice, votes.total)))}
+                    ${secondChoice} - ${calculatePercentage(votes.secondChoice, votes.total)}
+                    ${':blue_square:'.repeat(calculateNumSquares(votes.secondChoice, votes.total))}${':black_large_square:'.repeat((10 - calculateNumSquares(votes.secondChoice, votes.total)))}
+                    ${thirdChoice} - ${calculatePercentage(votes.thirdChoice, votes.total)}
+                    ${':blue_square:'.repeat(calculateNumSquares(votes.thirdChoice, votes.total))}${':black_large_square:'.repeat((10 - calculateNumSquares(votes.thirdChoice, votes.total)))}` },
+                );
+            return pollEmbed;
+        }
+
+		const modal = new ModalBuilder()
+			.setCustomId('Poll')
+			.setTitle('New Poll');
+        
+        const fields = {
+            pollTitle: new TextInputBuilder()
+            .setCustomId('pollTitle')
+            .setLabel('What would you like to call this poll?')
+            .setStyle(TextInputStyle.Short)
+            .setMaxLength(1000)
+            .setMinLength(1)
+            .setPlaceholder("Enter a title")
+            .setRequired(true),
+            firstChoice: new TextInputBuilder()
+            .setCustomId('firstChoice')
+            .setLabel('First Option')
+            .setStyle(TextInputStyle.Short)
+            .setMaxLength(1000)
+            .setRequired(true),
+            secondChoice: new TextInputBuilder()
+            .setCustomId('secondChoice')
+            .setLabel('Second Option')
+            .setStyle(TextInputStyle.Short)
+            .setMaxLength(1000)
+            .setRequired(true),
+            thirdChoice: new TextInputBuilder()
+            .setCustomId('thirdChoice')
+            .setLabel('Third Option')
+            .setStyle(TextInputStyle.Short)
+            .setMaxLength(1000)
+        }
+
+        // An action row only holds one text input,
+        // so you need one action row per text input.
+        const firstActionRow = new ActionRowBuilder().addComponents(fields.pollTitle);
+        const secondActionRow = new ActionRowBuilder().addComponents(fields.firstChoice);
+        const thirdActionRow = new ActionRowBuilder().addComponents(fields.secondChoice);
+        const fourthActionRow = new ActionRowBuilder().addComponents(fields.thirdChoice);
+
+        // Add inputs to the modal
+        modal.addComponents(firstActionRow, secondActionRow, thirdActionRow, fourthActionRow);
+
+
+        // Show the modal to the user
+        await interaction.showModal(modal);
+
+        const modalSubmission = await interaction.awaitModalSubmit({ time: 60000 })
+            .catch(console.err);
+
+        
+        const pollTitle = modalSubmission.fields.getTextInputValue('pollTitle');
+        const firstChoice = modalSubmission.fields.getTextInputValue('firstChoice');
+        const secondChoice = modalSubmission.fields.getTextInputValue('secondChoice');
+        const thirdChoice = modalSubmission.fields.getTextInputValue('thirdChoice');
+
+        var votes = {
+            firstChoice: 0,
+            secondChoice: 0,
+            thirdChoice: 0,
+            total: 0
+        }
+        
+        const voters = new Set()
+
+        const firstChoiceButton = new ButtonBuilder()
+        .setCustomId('firstChoiceButton')
+        .setLabel(firstChoice)
+        .setStyle(ButtonStyle.Secondary)
+
+        const secondChoiceButton = new ButtonBuilder()
+        .setCustomId('secondChoiceButton')
+        .setLabel(secondChoice)
+        .setStyle(ButtonStyle.Secondary)
+
+        const thirdChoiceButton = new ButtonBuilder()
+        .setCustomId('thirdChoiceButton')
+        .setLabel(thirdChoice)
+        .setStyle(ButtonStyle.Secondary)
+
+        const row = new ActionRowBuilder()
+        .addComponents(firstChoiceButton, secondChoiceButton, thirdChoiceButton)
+
+
+        
+
+        const response = await modalSubmission.reply({ embeds: [createPollEmbed(votes)], components: [row], fetchReply: true });
+
+        const collector = response.createMessageComponentCollector({ componentType: ComponentType.Button, time: 600_000 });
+
+        collector.on('collect', i => {
+            if (voters.has(i.user.id)) {
+                i.reply({content: `You've already voted on this poll!`, ephemeral: true });
+            }
+            else {
+                voters.add(i.user.id);
+                switch(i.customId){
+                    case 'firstChoiceButton':
+                        votes.firstChoice = votes.firstChoice += 1;
+                        votes.total = votes.total += 1;
+                        console.log(votes);
+                        i.update({embeds: [createPollEmbed(votes)], components: [row], fetchReply: true})
+                        break;
+                    case 'secondChoiceButton':
+                        votes.secondChoice = votes.secondChoice += 1;
+                        votes.total = votes.total += 1;
+                        console.log(votes);
+                        i.update({embeds: [createPollEmbed(votes)], components: [row], fetchReply: true})
+                        break;
+                    case 'thirdChoiceButton':
+                        votes.thirdChoice = votes.thirdChoice += 1;
+                        votes.total = votes.total += 1;
+                        console.log(votes);
+                        i.update({embeds: [createPollEmbed(votes)], components: [row], fetchReply: true})
+                }
+            }
+
+        });
+        collector.on('end', i => {
+            response.edit({content: 'The poll has ended!', embeds: [], components: [], })
+        })
+	},
+};
+
+
+// Construct and prepare an instance of the REST module
+const rest = new REST().setToken(token);
+
+// and deploy your commands!
+(async () => {
+	try {
+		console.log(`Started refreshing application (/) commands.`);
+
+		// The put method is used to fully refresh all commands in the guild with the current set
+		const data = await rest.put(
+			Routes.applicationGuildCommands(clientId, guildId),
+			{ body: [pollCommand.data] },
+		);
+
+		console.log(`Successfully reloaded ${data.length} application (/) commands.`);
+	} catch (error) {
+		// And of course, make sure you catch and log any errors!
+		console.error(error);
 	}
-}
+})();
+
+
+
+client.on(Events.InteractionCreate, async interaction => {
+	if (!interaction.isChatInputCommand()) return;
+
+	if (interaction.commandName === 'poll') {
+        try {
+            await pollCommand.execute(interaction);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+        }
+    }
+});
 
 client.login(token);
